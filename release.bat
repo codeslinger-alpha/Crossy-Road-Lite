@@ -49,7 +49,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: === Link final exe ===
-set "EXE_CMD=g++.exe -std=c++14 -static-libgcc -static-libstdc++ -LOpenGL\lib -o "%RELEASE_DIR%\game.exe" obj\opengl.o"
+set "EXE_CMD=g++.exe -std=c++14 -static-libgcc -static-libstdc++ -LOpenGL\lib -o "%RELEASE_DIR%\Crossy Road Lite" obj\opengl.o"
 
 if exist "obj\appicon.res" (
     set "EXE_CMD=!EXE_CMD! obj\appicon.res"

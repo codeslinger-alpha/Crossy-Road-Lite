@@ -8,17 +8,17 @@
 int resource_id;
 #define SLOPE 0.2679491924
 #include "iGraphics.h"
-#define HEIGHT 1024
-#define WIDTH 1000
+ int HEIGHT = 1024;
+ int WIDTH = 1000;
 #define CELL 50 // multiple of 10
 const int ROW = 1.0 * HEIGHT / CELL;
-#define start_y 4
+#define start_y 5
 
 #define FPS 60
 #define PLAYER_SPEED 120 // ms
 const int player_fps = 12;
 #define DEG(x) (x) * M_PI / 180
-#define SHADOW false
+
 #include <unordered_map>
 #include <string>
 #include <SDL.h>
@@ -26,7 +26,11 @@ const int player_fps = 12;
 #include <cstdio>
 #include <functional>
 
-#define SHADOW_COLOR 69, 69, 69
+
+struct Button{
+    int px, py, dx, dy;
+    Image img;
+};
 
 namespace Audio
 {
@@ -262,13 +266,16 @@ Image TRUCK1, TRUCK2, CAR1, CAR2, ROCK, TRAIN, EAGLE, LILYPAD, MENU_IMAGE; // re
 bool flown_sound = false;
 bool drown_sound = false;
 bool eagle_sound = false;
+bool flown_sound2 = false;
+bool drown_sound2 = false;
+bool eagle_sound2 = false;
 struct MySprite
 {
     std::pair<double, double> pos;
     std::vector<Image *> frames;
     int frame_id = 0;
 };
-MySprite splash;
+MySprite splash,splash2; // splash is for player1, splash2 is for player2
 std::vector<Image> TREE(4);
 
 enum CollisionType
@@ -279,7 +286,7 @@ enum CollisionType
     Eagle,
     Vehicle
 };
-CollisionType Collision = None;
+CollisionType Collision = None,Collision2 = None; // Collision2 is for player2
 enum Type
 {
     Street = 0,
@@ -318,7 +325,7 @@ struct Player
     std::vector<Image> file = std::vector<Image>(5);
     int frame_no;
 };
-std::queue<Motion> keypress;
+std::queue<Motion> keypress,keypress2; // keypress is for player1, keypress2 is for player2
 namespace Vertical
 {
     const double base_factor = (30.0 / 20) * FPS;
@@ -329,16 +336,17 @@ namespace Vertical
 
 namespace Timer
 {
-    int HScrollpx = -1, Eagle = -1, stopwatch = -1, player = -1;
+    int HScrollpx = -1, Eagle = -1, Eagle2=-1,stopwatch = -1, player = -1,player2=-1;
 
 }
 int TIME = 0;
-bool /* dontPush = false, */ isAnim = false, deathSound = false;
+bool /* dontPush = false, */ isAnim = false,isAnim2=false, deathSound = false,deathSound2=false;
 int onLog = 0;
-
+int onLog2 = 0; // onLog is for player1, onLog2 is for player2
 std::vector<Line> line;
 
-Player player;
+Player player,player2;
+
 struct Eagle_
 {
 
@@ -346,8 +354,8 @@ struct Eagle_
     double px, py = HEIGHT + CELL * 4;
 };
 void EagleSpawn();
-
-Eagle_ eagle;
+void EagleSpawn2();
+Eagle_ eagle,eagle2;
 namespace Spawn
 {
     void street(int line_i);
@@ -375,10 +383,10 @@ namespace Draw
 }
 namespace Horizontal
 {
-    int H = 0; // when player moves left or right
+    int H = 0; 
     int scrollpx_dir;
     void scroll(int x);
-    void scrollpx(); // called when player goes right or left
+    void scrollpx(); 
 }
 
 struct greater
@@ -440,18 +448,27 @@ void load_resources()
 {
 
     resources.push_back({{"assets\\images\\truck1.png", "assets\\images\\truck2.png", "assets\\images\\car1.png", "assets\\images\\car2.png",
-                          "assets/images/rock.png", "assets/images/up.png", "assets/images/down.png", "assets/images/left.png", "assets/images/right.png", "assets/images/Dead.png", "assets/images/train(main).png", "assets/images/eagle.png", "assets/images/lilypad.png", "assets\\images\\tree1.png", "assets\\images\\tree2.png", "assets\\images\\tree3.png", "assets\\images\\tree4.png", "assets\\images\\cover_page.png"},
+                          "assets/images/rock.png", "assets/images/up.png", "assets/images/down.png", "assets/images/left.png", "assets/images/right.png", "assets/images/Dead.png", "assets/images/train(main).png", "assets/images/eagle.png", "assets/images/lilypad.png", "assets\\images\\tree1.png", "assets\\images\\tree2.png", "assets\\images\\tree3.png", "assets\\images\\tree4.png","assets/images/up2.png", "assets/images/down2.png", "assets/images/left2.png", "assets/images/right2.png", "assets/images/dead2.png"},
                          {"assets\\sounds\\cluck0.wav", "assets\\sounds\\cluck1.wav", "assets\\sounds\\death.wav",
-                          "assets\\sounds\\traffic.ogg", "assets\\sounds\\eagle.wav", "assets\\sounds\\train.wav", "assets\\sounds\\train05x.wav", "assets\\sounds\\flown.wav", "assets\\sounds\\drown.wav", "assets\\sounds\\click.wav"}});
+                          "assets\\sounds\\traffic.ogg", "assets\\sounds\\eagle.wav", "assets\\sounds\\train.wav", "assets\\sounds\\train05x.wav", "assets\\sounds\\flown.wav", "assets\\sounds\\drown.wav", "assets\\sounds\\click.wav",
+                        "assets/sounds/quack.wav"}});
+    resources.push_back({{"assets\\images\\truck1.png", "assets\\images\\truck2.png", "assets\\images\\car1.png", "assets\\images\\car2.png",
+                          "assets/images/rock.png", "assets/images/up3.png", "assets/images/down3.png", "assets/images/left3.png", "assets/images/right3.png", "assets/images/Dead3.png", "assets/images/train(main).png", "assets/images/eagle.png", "assets/images/lilypad.png", "assets\\images\\tree21.png", "assets\\images\\tree22.png", "assets\\images\\tree23.png", "assets\\images\\tree24.png","assets/images/up2.png", "assets/images/down2.png", "assets/images/left2.png", "assets/images/right2.png", "assets/images/dead2.png"},
+                         {"assets\\sounds\\spring1.wav", "assets\\sounds\\spring2.wav", "assets\\sounds\\car_crash.wav",
+                          "assets\\sounds\\traffic.ogg", "assets\\sounds\\eagle.wav", "assets\\sounds\\train.wav", "assets\\sounds\\train05x.wav", "assets\\sounds\\flown.wav", "assets\\sounds\\drown.wav", "assets\\sounds\\click.wav",
+                        "assets/sounds/quack.wav"}});
+                        
 }
 std::vector<Image *> Images = {
-    &TRUCK1, &TRUCK2, &CAR1, &CAR2, &ROCK, &player.file[Up], &player.file[Down], &player.file[Left], &player.file[Right], &player.file[Dead], &TRAIN, &EAGLE, &LILYPAD, &TREE[0], &TREE[1], &TREE[2], &TREE[3], &MENU_IMAGE};
+    &TRUCK1, &TRUCK2, &CAR1, &CAR2, &ROCK, &player.file[Up], &player.file[Down], &player.file[Left], &player.file[Right], &player.file[Dead], &TRAIN, &EAGLE, &LILYPAD, &TREE[0], &TREE[1], &TREE[2], &TREE[3], 
+&player2.file[Up], &player2.file[Down], &player2.file[Left], &player2.file[Right], &player2.file[Dead]
+};
 
 std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 template <typename Iterator>
-void shuffle_(Iterator start, Iterator end)
+void shuffle_(Iterator start, Iterator ends)
 {
-    std::shuffle(start, end, rng);
+    std::shuffle(start, ends, rng);
 }
 int ranint(int l, int r)
 {
@@ -464,11 +481,14 @@ int ranint(int l, int r)
 void Load_Image()
 {
     int i = 0;
+    
     for (auto &image : Images)
     {
+        
         iLoadImage(image, resources[resource_id].first[i].c_str());
         i++;
     }
+    
     if (resource_id == 0)
     {
         Draw::water_bg = {99, 227, 255};
@@ -495,11 +515,69 @@ void Load_Image()
         };
 
         splash.frames.resize(count_files("assets\\images\\Splash"));
-
+        splash2.frames.resize(count_files("assets\\images\\Splash"));
         for (int i = 0; i < splash.frames.size(); ++i)
         {
+            if(!splash.frames[i]) 
             splash.frames[i] = new Image;
             iLoadImage(splash.frames[i], std::string("assets\\images\\Splash\\" + std::to_string(i) + ".png").c_str());
+            if(!splash2.frames[i]) 
+            splash2.frames[i] = new Image;
+            iLoadImage(splash2.frames[i], std::string("assets\\images\\Splash\\" + std::to_string(i) + ".png").c_str());
+        
         }
     }
+    if (resource_id == 1)
+    {
+        Draw::water_bg = {99, 227, 255};
+
+        Draw::log = {79, 47, 49};
+        Draw::log_top = {141, 81, 77};
+        Draw::field_bg = {220, 156, 39};
+
+        auto count_files = [](const std::string &folder) // not for linux
+        {
+            int count = 0;
+            struct _finddata_t fileinfo;
+            intptr_t hFile = _findfirst((folder + "\\*").c_str(), &fileinfo);
+            if (hFile != -1)
+            {
+                do
+                {
+                    if (!(fileinfo.attrib & _A_SUBDIR))
+                        ++count;
+                } while (_findnext(hFile, &fileinfo) == 0);
+                _findclose(hFile);
+            }
+            return count;
+        };
+
+        splash.frames.resize(count_files("assets\\images\\Splash"));
+        splash2.frames.resize(count_files("assets\\images\\Splash"));
+        for (int i = 0; i < splash.frames.size(); ++i)
+        {
+            if(!splash.frames[i]) 
+            splash.frames[i] = new Image;
+            iLoadImage(splash.frames[i], std::string("assets\\images\\Splash\\" + std::to_string(i) + ".png").c_str());
+            if(!splash2.frames[i]) 
+            splash2.frames[i] = new Image;
+            iLoadImage(splash2.frames[i], std::string("assets\\images\\Splash\\" + std::to_string(i) + ".png").c_str());
+        
+        }
+    }
+    //loaded_once = true;
 }
+#ifdef _WIN32
+#include <windows.h>
+void DisableResize() {
+    HWND hwnd = FindWindowA(NULL, "Crossy Road Lite"); // Use your window title
+    if (hwnd) {
+        LONG style = GetWindowLong(hwnd, GWL_STYLE);
+        style &= ~(WS_MAXIMIZEBOX | WS_THICKFRAME); // Disable maximize + resizing
+        SetWindowLong(hwnd, GWL_STYLE, style);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
+}
+#endif
+
